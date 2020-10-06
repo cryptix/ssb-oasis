@@ -122,7 +122,6 @@ const http = require("./http");
 
 const koaBody = require("koa-body");
 const { nav, ul, li, a } = require("hyperaxe");
-const open = require("open");
 const pull = require("pull-stream");
 const requireStyle = require("require-style");
 const koaRouter = require("@koa/router");
@@ -1073,7 +1072,3 @@ app._close = () => {
 module.exports = app;
 
 log(`Listening on ${url}`);
-
-if (config.open === true) {
-  open(url);
-}
