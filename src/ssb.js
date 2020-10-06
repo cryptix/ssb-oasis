@@ -54,7 +54,6 @@ const connect = (options) =>
   });
 
 let closing = false;
-let serverHandle;
 let clientHandle;
 
 /**
@@ -97,18 +96,17 @@ const ensureConnection = (customConfig) => {
   if (pendingConnection === null) {
     pendingConnection = new Promise((resolve) => {
       attemptConnection()
-        .then((ssb) => {
+            .then((ssb) => {
           resolve(ssb);
         })
         .catch(() => {
           debug("Connection attempts to existing Scuttlebutt services failed");
           log("Starting Scuttlebutt service");
 
-          // Adjust with `customConfig`, which declares further preferences.
-          serverHandle = flotilla(customConfig);
 
           // Give the server a moment to start. This is a race condition. :/
-          setTimeout(() => {
+            setTimeout(() => {
+               log('timeout, reconnecting..');
             attemptConnection()
               .then(resolve)
               .catch((e) => {
@@ -186,9 +184,6 @@ module.exports = ({ offline }) => {
       closing = true;
       if (clientHandle && clientHandle.closed === false) {
         clientHandle.close();
-      }
-      if (serverHandle) {
-        serverHandle.close();
       }
     },
   };
