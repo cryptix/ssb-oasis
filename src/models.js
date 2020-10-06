@@ -75,28 +75,20 @@ module.exports = ({ cooler, isPublic }) => {
    * above problems. Maybe this should be moved somewhere else in the future?
    */
   const getAbout = async ({ key, feedId }) => {
-    const ssb = await cooler.open();
+      const ssb = await cooler.open();
 
-    const source = ssb.backlinks.read({
-      reverse: true,
-      query: [
-        {
-          $filter: {
-            dest: feedId,
-            value: {
-              author: feedId,
-              content: { type: "about", about: feedId },
-            },
-          },
-        },
-      ],
-    });
+
+      const source = ssb.partialReplication.getMessagesOfType({
+          keys:true,
+          type: 'about',
+          id: feedId
+      })
     return new Promise((resolve, reject) =>
       pull(
         source,
         pull.find(
-          (message) => message.value.content[key] !== undefined,
-          (err, message) => {
+            (message) => message.value.content[key] !== undefined,
+            (err, message) => {
             if (err) {
               reject(err);
             } else {
@@ -444,9 +436,11 @@ module.exports = ({ cooler, isPublic }) => {
     query,
     filter = null,
   }) => {
+      console.log(query)
+      throw new Error('backlinks unsupported')
     const options = configure({ query, index: "DTA" }, customOptions);
 
-    const source = ssb.backlinks.read(options);
+    const source = ssb.badlink.read(options);
     const basicSocialFilter = await socialFilter();
 
     return new Promise((resolve, reject) => {
@@ -520,18 +514,6 @@ module.exports = ({ cooler, isPublic }) => {
           return null;
         }
 
-        const filterQuery = {
-          $filter: {
-            dest: msg.key,
-          },
-        };
-
-        const referenceStream = ssb.backlinks.read({
-          query: [filterQuery],
-          index: "DTA", // use asserted timestamps
-          private: true,
-          meta: true,
-        });
 
         if (lodash.get(msg, "value.content.type") === "blog") {
           const blogTitle = msg.value.content.title;
@@ -545,47 +527,8 @@ module.exports = ({ cooler, isPublic }) => {
           lodash.set(msg, "value.content.text", textElements.join("\n\n"));
         }
 
-        const rawVotes = await new Promise((resolve, reject) => {
-          pull(
-            referenceStream,
-            pull.filter(
-              (ref) =>
-                isNotEncrypted(ref) &&
-                ref.value.content.type === "vote" &&
-                ref.value.content.vote &&
-                typeof ref.value.content.vote.value === "number" &&
-                ref.value.content.vote.value >= 0 &&
-                ref.value.content.vote.link === msg.key
-            ),
-            pull.collect((err, collectedMessages) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(collectedMessages);
-              }
-            })
-          );
-        });
 
-        // { @key: 1, @key2: 0, @key3: 1 }
-        //
-        // only one vote per person!
-        const reducedVotes = rawVotes.reduce((acc, vote) => {
-          acc[vote.value.author] = vote.value.content.vote.value;
-          return acc;
-        }, {});
 
-        // gets *only* the people who voted 1
-        // [ @key, @key, @key ]
-        const voters = Object.entries(reducedVotes)
-          .filter(([, value]) => value === 1)
-          .map(([key]) => key);
-
-        // get an array of voter names, for display on hover
-        const pendingVoterNames = voters.map((author) =>
-          models.about.name(author)
-        );
-        const voterNames = await Promise.all(pendingVoterNames);
 
         const pendingName = models.about.name(msg.value.author);
         const pendingAvatarMsg = models.about.image(msg.value.author);
@@ -657,16 +600,14 @@ module.exports = ({ cooler, isPublic }) => {
           lodash.set(msg, "value.meta.postType", "mystery");
         }
 
-        lodash.set(msg, "value.meta.votes", voterNames);
-        lodash.set(msg, "value.meta.voted", voters.includes(myFeedId));
 
-        return msg;
+       return msg;
       })
     );
 
   const getLimitPost = async (feedId, reverse) => {
     const ssb = await cooler.open();
-    const source = ssb.createUserStream({ id: feedId, reverse: reverse });
+      const source = ssb.createHistoryStream({ keys:true, id: feedId, reverse: reverse });
     const messages = await new Promise((resolve, reject) => {
       pull(
         source,
@@ -696,7 +637,7 @@ module.exports = ({ cooler, isPublic }) => {
 
       const myFeedId = ssb.id;
 
-      let defaultOptions = { id: feedId };
+      let defaultOptions = { keys:true, id: feedId };
       if (lt >= 0) defaultOptions.lt = lt;
       if (gt >= 0) defaultOptions.gt = gt;
       defaultOptions.reverse = !(gt >= 0 && lt < 0);
@@ -710,7 +651,7 @@ module.exports = ({ cooler, isPublic }) => {
         return [];
       }
 
-      const source = ssb.createUserStream(options);
+      const source = ssb.createHistoryStream(options);
 
       const messages = await new Promise((resolve, reject) => {
         pull(
@@ -931,34 +872,12 @@ module.exports = ({ cooler, isPublic }) => {
 
       const myFeedId = ssb.id;
 
-      const source = ssb.query.read(
-        configure({
-          query: [
-            {
-              $filter: {
-                value: {
-                  timestamp: { $lte: Date.now() },
-                  content: {
-                    type: { $in: ["post", "blog"] },
-                  },
-                },
-              },
-            },
-          ],
-        })
-      );
-
-      const extendedFilter = await socialFilter({
-        following: false,
-        me: false,
-      });
-
       const messages = await new Promise((resolve, reject) => {
         pull(
-          source,
-          publicOnlyFilter,
-          extendedFilter,
-          pull.take(maxMessages),
+            ssb.createLogStream({reverse:true,keys:true}),
+            pull.filter( (msg) => msg.value.content.type == 'post' ),
+            pull.take(maxMessages),
+
           pull.collect((err, collectedMessages) => {
             if (err) {
               reject(err);
@@ -1342,15 +1261,9 @@ module.exports = ({ cooler, isPublic }) => {
 
           const getDirectDescendants = (key) =>
             new Promise((resolve, reject) => {
-              const filterQuery = {
-                $filter: {
-                  dest: key,
-                },
-              };
 
-              const referenceStream = ssb.backlinks.read({
-                query: [filterQuery],
-                index: "DTA", // use asserted timestamps
+              const referenceStream = ssb.tangles({
+                  root: key,
               });
               pull(
                 referenceStream,
@@ -1579,7 +1492,7 @@ module.exports = ({ cooler, isPublic }) => {
     },
     branch: async ({ root }) => {
       const ssb = await cooler.open();
-      const keys = await ssb.tangle.branch(root);
+      const keys = await ssb.tangles.branch(root);
 
       return keys;
     },
