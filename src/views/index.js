@@ -805,11 +805,17 @@ exports.publishView = () => {
   );
 };
 
-exports.previewView = ({authorMeta, text, contentWarning, blobId}) => {
-  if (typeof blobId !== "boolean") {
+exports.previewView = ({authorMeta, text, contentWarning, blob}) => {
+  if (typeof blob !== "boolean") {
     // TODO: filename?!
     // TODO: mime type guessing for just link / !image /  / audio: ?
-    text += "\n![your new blob]("+blobId+")"
+    console.log(blob.mime)
+    if (blob.mime.startsWith("image/")) {
+      text += `\n![${name}](${blob})`
+
+    } else {
+      text += `\n[${name}](${blob})`
+    }
   }
 
   const rawHtml = markdown(text);

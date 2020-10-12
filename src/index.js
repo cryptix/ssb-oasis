@@ -656,30 +656,38 @@ router
       image: await about.image(ssb.id),
     }
 
-    let blobId = false
+    let blob = false
     const blobUpload= ctx.request.files.blob
     if (typeof blobUpload !== "undefined") {
 
-      const blob = await fs.promises.readFile(blobUpload.path);
-      if (blob.length > 0) {
+      const data = await fs.promises.readFile(blobUpload.path);
+      if (data.length > 0) {
         // 5 MiB check
         const mebibyte = Math.pow(2, 20);
         const maxSize = 5 * mebibyte;
-        if (blob.length > maxSize) {
+        if (data.length > maxSize) {
           throw new Error("Blob file is too big, maximum size is 5 mebibytes");
         }
         
         const addBlob = new Promise((resolve, reject) => {
           pull(
-            pull.values([blob]),
+            pull.values([data]),
             ssb.blobs.add((err, hashedBlobRef) => {
               if (err) return reject(err);
               console.log("added", hashedBlobRef)
+
+              
               resolve(hashedBlobRef)
+
             })
           )
         })
-        blobId = await addBlob;
+        const FileType = require('file-type');
+        let ftype = await FileType.fromBuffer(data)
+        blob = {
+          id: await addBlob,
+          mime: ftype.mime,
+        }
       }
     }
         
@@ -687,7 +695,7 @@ router
     const contentWarning =
       rawContentWarning.length > 0 ? rawContentWarning : undefined;
 
-    ctx.body = await previewView({authorMeta, text, contentWarning, blobId});
+    ctx.body = await previewView({authorMeta, text, contentWarning, blob});
   })
   .post("/publish/", koaBody(), async (ctx) => {
     const text = String(ctx.request.body.text);
