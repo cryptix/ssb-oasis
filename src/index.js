@@ -68,6 +68,7 @@ these settings the default. See the readme for details.`);
 
 const oasisCheckPath = "/.well-known/oasis";
 
+/*
 process.on("uncaughtException", function (err) {
   // This isn't `err.code` because TypeScript doesn't like that.
   if (err["code"] === "EADDRINUSE") {
@@ -109,6 +110,7 @@ Alternatively, you can set the default port in ${defaultConfigFile} with:
     throw err;
   }
 });
+*/
 
 // HACK: We must get the CLI config and then delete environment variables.
 // This hides arguments from other upstream modules who might parse them.
@@ -338,8 +340,6 @@ const {
   previewCommentView,
   commentView,
   editProfileView,
-  indexingView,
-  extendedView,
   latestView,
   likesView,
   threadView,
