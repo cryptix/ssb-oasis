@@ -777,17 +777,24 @@ exports.markdownView = ({ text }) => {
 };
 
 exports.publishView = () => {
-  const publishForm = "/publish/";
-
+  // TODO: make one with preview
   return template(
     i18n.publish,
     section(
       h1(i18n.publish),
       form(
-        { action: publishForm, method: "post" },
+        { 
+          action: "/publish/preview",
+          method: "post",
+          enctype: "multipart/form-data",
+        },
         label(
           i18n.publishLabel({ markdownUrl, linkTarget: "_blank" }),
           textarea({ required: true, name: "text" })
+        ),
+        label(
+          "add new blob", /* todo: localize */
+          input({ type: "file", name: "blob" })
         ),
         label(
           i18n.contentWarningLabel,
@@ -798,8 +805,71 @@ exports.publishView = () => {
             placeholder: i18n.contentWarningPlaceholder,
           })
         ),
-        button({ type: "submit" }, i18n.submit)
+        button({ type: "submit" }, i18n.preview)
       )
+    ),
+    p(i18n.publishCustomInfo({ href: "/publish/custom" }))
+  );
+};
+
+exports.previewView = ({text, contentWarning, blobId}) => {
+  if (typeof blobId !== "boolean") {
+    // TODO: filename?!
+    // TODO: mime type guessing for just link / !image /  / audio: ?
+    text += "\n![your new blob]("+blobId+")"
+  }
+  const rawHtml = md.render(text);
+
+  return template(
+    i18n.preview,
+    section(
+      h1(i18n.preview),
+      
+      h2('todo:'),
+      ul(
+        li("show full message not just content"),
+      ),
+      section({ class: "message" }, { innerHTML: rawHtml }),
+
+      h2('continue editing...?'),
+      form(
+        { action: "/publish/preview", method: "post", enctype: "multipart/form-data" },
+        label(
+          i18n.publishLabel({ markdownUrl, linkTarget: "_blank" }),
+          textarea({ required: true, name: "text"}, text)
+        ),
+        label(
+          "add new blob", /* todo: localize */
+          input({ type: "file", name: "blob" })
+        ),
+        label(
+          i18n.contentWarningLabel,
+          input({
+            name: "contentWarning",
+            type: "text",
+            class: "contentWarning",
+            placeholder: i18n.contentWarningPlaceholder,
+            value: contentWarning,
+          })
+        ),
+        button({ type: "submit" }, i18n.preview),
+      ),
+
+      // doesn't need blobs, preview adds them to the text
+      form(
+        { action: "/publish", method: "post" },
+        input({
+          name: "contentWarning",
+          type: "hidden",
+          value: contentWarning,
+        }),  
+        input({
+            name: "text",
+            type: "hidden",
+            value: text,
+        }),
+        button({ type: "submit" }, i18n.publish),
+      ),
     ),
     p(i18n.publishCustomInfo({ href: "/publish/custom" }))
   );
