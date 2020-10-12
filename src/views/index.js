@@ -777,14 +777,12 @@ exports.markdownView = ({ text }) => {
 };
 
 exports.publishView = () => {
-  const publishForm = "/publish/";
-
   return template(
     i18n.publish,
     section(
       h1(i18n.publish),
       form(
-        { action: publishForm, method: "post" },
+        { action: "/publish/preview", method: "post" },
         label(
           i18n.publishLabel({ markdownUrl, linkTarget: "_blank" }),
           textarea({ required: true, name: "text" })
@@ -798,8 +796,62 @@ exports.publishView = () => {
             placeholder: i18n.contentWarningPlaceholder,
           })
         ),
-        button({ type: "submit" }, i18n.submit)
+        button({ type: "submit" }, i18n.preview)
       )
+    ),
+    p(i18n.publishCustomInfo({ href: "/publish/custom" }))
+  );
+};
+
+exports.previewView = ({text, contentWarning}) => {
+  const rawHtml = md.render(text);
+  
+  return template(
+    i18n.preview,
+    section(
+      h1(i18n.preview),
+      
+      h2('todo:'),
+      ul(
+        li("show full message not just content"),
+        li("file upload form"),
+      ),
+      section({ class: "message" }, { innerHTML: rawHtml }),
+
+      h2('continue editing...?'),
+      form(
+        { action: "/publish/preview", method: "post" },
+        label(
+          i18n.publishLabel({ markdownUrl, linkTarget: "_blank" }),
+          textarea({ required: true, name: "text"}, text)
+        ),
+        label(
+          i18n.contentWarningLabel,
+          input({
+            name: "contentWarning",
+            type: "text",
+            class: "contentWarning",
+            placeholder: i18n.contentWarningPlaceholder,
+            value: contentWarning,
+          })
+        ),
+        button({ type: "submit" }, i18n.preview),
+      ),
+
+      form(
+        { action: "/publish", method: "post" },
+        input({
+          name: "contentWarning",
+          type: "hidden",
+          value: contentWarning,
+        }),  
+        input({
+            name: "text",
+            type: "hidden",
+            value: text,
+        }),
+        button({ type: "submit" }, i18n.publish),
+      ),
     ),
     p(i18n.publishCustomInfo({ href: "/publish/custom" }))
   );
