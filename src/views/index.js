@@ -763,7 +763,7 @@ exports.threadView = ({ messages }) => {
 };
 
 exports.markdownView = ({ text }) => {
-  const rawHtml = md.render(text);
+  const rawHtml = md.render(text); // todo: remove markdown it?!
 
   return template(
     postSnippet(text),
@@ -813,7 +813,8 @@ exports.previewView = ({text, contentWarning, blobId}) => {
     // TODO: mime type guessing for just link / !image /  / audio: ?
     text += "\n![your new blob]("+blobId+")"
   }
-  const rawHtml = md.render(text);
+
+  const rawHtml = markdown(text);
 
   return template(
     i18n.preview,
