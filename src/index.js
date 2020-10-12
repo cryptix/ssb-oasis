@@ -649,6 +649,13 @@ router
     const text = String(ctx.request.body.text);
     const rawContentWarning = String(ctx.request.body.contentWarning).trim();
 
+    const ssb = await cooler.open();
+    let authorMeta = {
+      id: ssb.id,
+      name: await about.name(ssb.id),
+      image: await about.image(ssb.id),
+    }
+
     let blobId = false
     const blobUpload= ctx.request.files.blob
     if (typeof blobUpload !== "undefined") {
@@ -662,7 +669,6 @@ router
           throw new Error("Blob file is too big, maximum size is 5 mebibytes");
         }
         
-        const ssb = await cooler.open();
         const addBlob = new Promise((resolve, reject) => {
           pull(
             pull.values([blob]),
@@ -681,7 +687,7 @@ router
     const contentWarning =
       rawContentWarning.length > 0 ? rawContentWarning : undefined;
 
-    ctx.body = await previewView({text, contentWarning, blobId});
+    ctx.body = await previewView({authorMeta, text, contentWarning, blobId});
   })
   .post("/publish/", koaBody(), async (ctx) => {
     const text = String(ctx.request.body.text);
