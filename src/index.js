@@ -675,18 +675,22 @@ router
             ssb.blobs.add((err, hashedBlobRef) => {
               if (err) return reject(err);
               console.log("added", hashedBlobRef)
-
-              
               resolve(hashedBlobRef)
-
             })
           )
         })
-        const FileType = require('file-type');
-        let ftype = await FileType.fromBuffer(data)
         blob = {
           id: await addBlob,
-          mime: ftype.mime,
+          name: blobUpload.name
+        }
+        const FileType = require('file-type');
+        try {
+          let ftype = await FileType.fromBuffer(data)
+          console.warn(ftype)
+          blob.mime = ftype.mime
+        } catch (error) {
+          console.warn(error)
+          blob.mime = "application/octet-stream"
         }
       }
     }

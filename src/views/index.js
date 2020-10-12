@@ -806,15 +806,16 @@ exports.publishView = () => {
 };
 
 exports.previewView = ({authorMeta, text, contentWarning, blob}) => {
+  // append uploaded blob as markdown to the end of the input text
   if (typeof blob !== "boolean") {
-    // TODO: filename?!
-    // TODO: mime type guessing for just link / !image /  / audio: ?
-    console.log(blob.mime)
     if (blob.mime.startsWith("image/")) {
-      text += `\n![${name}](${blob})`
-
+      text += `\n![${blob.name}](${blob.id})`
+    } else if (blob.mime.startsWith("audio/")) {
+      text += `\n![audio:${blob.name}](${blob.id})`
+    } else if (blob.mime.startsWith("video/")) {
+      text += `\n![video:${blob.name}](${blob.id})`
     } else {
-      text += `\n[${name}](${blob})`
+      text += `\n[${blob.name}](${blob.id})`
     }
   }
 
