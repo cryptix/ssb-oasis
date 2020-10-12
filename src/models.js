@@ -465,6 +465,34 @@ module.exports = ({ cooler, isPublic }) => {
     });
   };
 
+  const getTangleMessages = async ({
+    myFeedId,
+    rootId,
+    ssb,
+    filter = null,
+  }) => {
+    return new Promise((resolve, reject) => {
+      pull(
+        ssb.tangles(rootId),
+        pull.filter(
+          (msg) =>
+            isNotEncrypted(msg) &&
+            isPost(msg) &&
+            (filter == null || filter(msg) === true)
+        ),
+        pull.take(maxMessages),
+        pull.collect((err, collectedMessages) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(transform(ssb, collectedMessages, myFeedId));
+          }
+        })
+      );
+    });
+
+  };
+
   /**
    * Returns a function that filters messages based on who published the message.
    *
@@ -720,82 +748,17 @@ module.exports = ({ cooler, isPublic }) => {
     },
     topicComments: async (rootId, customOptions = {}) => {
       const ssb = await cooler.open();
-
       const myFeedId = ssb.id;
-
-      const query = [
-        {
-          $filter: {
-            dest: rootId,
-          },
-        },
-      ];
-
-      const messages = await getMessages({
+      const messages = await getTangleMessages({
         myFeedId,
-        customOptions,
-        ssb,
-        query,
+        rootId,
+        ssb, 
         filter: (msg) => msg.value.content.root === rootId && hasNoFork(msg),
       });
 
       return messages;
     },
-    likes: async ({ feed }, customOptions = {}) => {
-      const ssb = await cooler.open();
 
-      const query = [
-        {
-          $filter: {
-            value: {
-              author: feed,
-              timestamp: { $lte: Date.now() },
-              content: {
-                type: "vote",
-              },
-            },
-          },
-        },
-      ];
-
-      const options = configure(
-        {
-          query,
-          reverse: true,
-        },
-        customOptions
-      );
-
-      const source = await ssb.query.read(options);
-
-      const messages = await new Promise((resolve, reject) => {
-        pull(
-          source,
-          pull.filter((msg) => {
-            return (
-              isNotEncrypted(msg) &&
-              msg.value.author === feed &&
-              typeof msg.value.content.vote === "object" &&
-              typeof msg.value.content.vote.link === "string"
-            );
-          }),
-          pull.take(maxMessages),
-          pullParallelMap(async (val, cb) => {
-            const msg = await post.get(val.value.content.vote.link);
-            cb(null, msg);
-          }),
-          pull.collect((err, collectedMessages) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(collectedMessages);
-            }
-          })
-        );
-      });
-
-      return messages;
-    },
     search: async ({ query }) => {
       const ssb = await cooler.open();
 
@@ -1421,7 +1384,7 @@ module.exports = ({ cooler, isPublic }) => {
     },
     branch: async ({ root }) => {
       const ssb = await cooler.open();
-      const keys = await ssb.tangles.branch(root);
+      const keys = await ssb.tangles.branch(root); // branch lookup
 
       return keys;
     },
