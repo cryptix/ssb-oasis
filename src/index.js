@@ -209,7 +209,7 @@ router
     return next();
   })
   .get("/", async (ctx) => {
-    ctx.redirect("/mentions");
+    ctx.redirect("/profile");
   })
   .get("/robots.txt", (ctx) => {
     ctx.body = "User-agent: *\nDisallow: /";
@@ -245,10 +245,6 @@ router
   .get("/public/latest", async (ctx) => {
     const messages = await post.latest();
     ctx.body = await latestView({ messages });
-  })
-  .get("/public/latest/extended", async (ctx) => {
-    const messages = await post.latestExtended();
-    ctx.body = await extendedView({ messages });
   })
   .get("/public/latest/topics", async (ctx) => {
     const messages = await post.latestTopics();

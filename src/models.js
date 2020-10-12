@@ -831,47 +831,6 @@ module.exports = ({ cooler, isPublic }) => {
 
       const myFeedId = ssb.id;
 
-      const source = ssb.query.read(
-        configure({
-          query: [
-            {
-              $filter: {
-                value: {
-                  timestamp: { $lte: Date.now() },
-                  content: {
-                    type: { $in: ["post", "blog"] },
-                  },
-                },
-              },
-            },
-          ],
-        })
-      );
-      const followingFilter = await socialFilter({ following: true });
-
-      const messages = await new Promise((resolve, reject) => {
-        pull(
-          source,
-          followingFilter,
-          publicOnlyFilter,
-          pull.take(maxMessages),
-          pull.collect((err, collectedMessages) => {
-            if (err) {
-              reject(err);
-            } else {
-              resolve(transform(ssb, collectedMessages, myFeedId));
-            }
-          })
-        );
-      });
-
-      return messages;
-    },
-    latestExtended: async () => {
-      const ssb = await cooler.open();
-
-      const myFeedId = ssb.id;
-
       const messages = await new Promise((resolve, reject) => {
         pull(
             ssb.createLogStream({reverse:true,keys:true}),
@@ -1033,39 +992,9 @@ module.exports = ({ cooler, isPublic }) => {
     popular: async ({ period }) => {
       const ssb = await cooler.open();
 
-      const periodDict = {
-        day: 1,
-        week: 7,
-        month: 30.42,
-        year: 365,
-      };
-
-      if (period in periodDict === false) {
-        throw new Error("invalid period");
-      }
-
       const myFeedId = ssb.id;
 
-      const now = new Date();
-      const earliest = Number(now) - 1000 * 60 * 60 * 24 * periodDict[period];
-
-      const source = ssb.query.read(
-        configure({
-          query: [
-            {
-              $filter: {
-                value: {
-                  timestamp: { $gte: earliest },
-                  content: {
-                    type: "vote",
-                  },
-                },
-              },
-            },
-          ],
-        })
-      );
-      const basicSocialFilter = await socialFilter();
+        const source = ssb.messagesByType({keys:true,type:"vote", limit:2000})
 
       const messages = await new Promise((resolve, reject) => {
         pull(
@@ -1151,7 +1080,6 @@ module.exports = ({ cooler, isPublic }) => {
                     (message.value.content.type === "post" ||
                       message.value.content.type === "blog")
                 ),
-                basicSocialFilter,
                 pull.collect((collectErr, collectedMessages) => {
                   if (collectErr) {
                     reject(collectErr);
@@ -1262,7 +1190,8 @@ module.exports = ({ cooler, isPublic }) => {
           const getDirectDescendants = (key) =>
             new Promise((resolve, reject) => {
 
-              const referenceStream = ssb.tangles({
+                const referenceStream = ssb.tangles({
+                  keys:true,
                   root: key,
               });
               pull(
