@@ -156,6 +156,7 @@ const {
   markdownView,
   mentionsView,
   popularView,
+  previewView,
   privateView,
   publishCustomView,
   publishView,
@@ -584,6 +585,17 @@ router
   })
   .get("/publish", async (ctx) => {
     ctx.body = await publishView();
+  })
+  .post("/publish/preview", koaBody(), async (ctx) => {
+    const text = String(ctx.request.body.text);
+    const rawContentWarning = String(ctx.request.body.contentWarning).trim();
+
+    // Only submit content warning if it's a string with non-zero length.
+    const contentWarning =
+      rawContentWarning.length > 0 ? rawContentWarning : undefined;
+
+
+    ctx.body = await previewView({text, contentWarning});
   })
   .get("/comment/:message", async (ctx) => {
     const { message } = ctx.params;
