@@ -810,13 +810,7 @@ exports.publishView = () => {
   );
 };
 
-exports.previewView = ({authorMeta, text, contentWarning, blobId}) => {
-  if (typeof blobId !== "boolean") {
-    // TODO: filename?!
-    // TODO: mime type guessing for just link / !image /  / audio: ?
-    text += "\n![your new blob]("+blobId+")"
-  }
-
+exports.previewView = ({authorMeta, text, contentWarning}) => {
   const rawHtml = markdown(text);
 
   // craft message that looks like it came from the db
