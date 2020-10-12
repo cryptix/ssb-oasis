@@ -2,8 +2,7 @@
 
 const debug = require("debug")("oasis");
 const highlightJs = require("highlight.js");
-
-const MarkdownIt = require("markdown-it");
+const prettyMs = require("pretty-ms");
 
 const {
   a,
@@ -46,9 +45,8 @@ const {
 const lodash = require("lodash");
 const markdown = require("./markdown");
 
-const md = new MarkdownIt();
-
 const i18nBase = require("./i18n");
+
 let selectedLanguage = "en";
 let i18n = i18nBase[selectedLanguage];
 
@@ -767,9 +765,9 @@ exports.threadView = ({ messages }) => {
   return template([`@${rootAuthorName}: `, rootSnippet], thread(messages));
 };
 
+// this view is only used for the /settings/readme page
 exports.markdownView = ({ text }) => {
-  const rawHtml = md.render(text); // todo: remove markdown it?!
-
+  const rawHtml = markdown(text); // todo: remove markdown it?!
   return template(
     postSnippet(text),
     section({ class: "message" }, { innerHTML: rawHtml })
