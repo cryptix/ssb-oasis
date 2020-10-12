@@ -807,7 +807,7 @@ exports.publishView = () => {
   );
 };
 
-exports.previewView = ({text, contentWarning, blobId}) => {
+exports.previewView = ({authorMeta, text, contentWarning, blobId}) => {
   if (typeof blobId !== "boolean") {
     // TODO: filename?!
     // TODO: mime type guessing for just link / !image /  / audio: ?
@@ -816,6 +816,34 @@ exports.previewView = ({text, contentWarning, blobId}) => {
 
   const rawHtml = markdown(text);
 
+  // craft message that looks like it came from the db
+  const msg = {
+    key: "%non-existant.preview",
+    value: {
+      author: authorMeta.id,
+      // sequence: -1,
+      content: {
+        type:"post",
+        text: text
+      },
+      timestamp: Date.now(),
+      meta: {
+        isPrivate: true,
+        author: {
+          name: authorMeta.name,
+          avatar: {
+            url: `/image/64/${encodeURIComponent(authorMeta.image)}`
+          }
+        },
+      }
+    }
+  }
+  const ts = new Date(msg.value.timestamp);
+  lodash.set(msg, "value.meta.timestamp.received.iso8601", ts.toISOString());
+  const ago = Date.now() - Number(ts);
+  const prettyAgo = prettyMs(ago, { compact: true });
+  lodash.set(msg, "value.meta.timestamp.received.since", prettyAgo);
+
   return template(
     i18n.preview,
     section(
@@ -823,10 +851,13 @@ exports.previewView = ({text, contentWarning, blobId}) => {
       
       h2('todo:'),
       ul(
-        li("show full message not just content"),
+        li("[x] show full message not just content"),
+        li("[ ] butt the href's to thread, comment, JSON should not work, maybe?"),
       ),
+      h2('just the content'),
       section({ class: "message" }, { innerHTML: rawHtml }),
-
+      h2('like a post'),
+      post({msg}),
       h2('continue editing...?'),
       form(
         { action: "/publish/preview", method: "post", enctype: "multipart/form-data" },
