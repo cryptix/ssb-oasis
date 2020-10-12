@@ -772,15 +772,24 @@ exports.markdownView = ({ text }) => {
 };
 
 exports.publishView = () => {
+  // TODO: make one with preview
   return template(
     i18n.publish,
     section(
       h1(i18n.publish),
       form(
-        { action: "/publish/preview", method: "post" },
+        { 
+          action: "/publish/preview",
+          method: "post",
+          enctype: "multipart/form-data",
+        },
         label(
           i18n.publishLabel({ markdownUrl, linkTarget: "_blank" }),
           textarea({ required: true, name: "text" })
+        ),
+        label(
+          "add new blob", /* todo: localize */
+          input({ type: "file", name: "blob" })
         ),
         label(
           i18n.contentWarningLabel,
@@ -798,9 +807,14 @@ exports.publishView = () => {
   );
 };
 
-exports.previewView = ({text, contentWarning}) => {
+exports.previewView = ({text, contentWarning, blobId}) => {
+  if (typeof blobId !== "boolean") {
+    // TODO: filename?!
+    // TODO: mime type guessing for just link / !image /  / audio: ?
+    text += "\n![your new blob]("+blobId+")"
+  }
   const rawHtml = md.render(text);
-  
+
   return template(
     i18n.preview,
     section(
@@ -809,16 +823,19 @@ exports.previewView = ({text, contentWarning}) => {
       h2('todo:'),
       ul(
         li("show full message not just content"),
-        li("file upload form"),
       ),
       section({ class: "message" }, { innerHTML: rawHtml }),
 
       h2('continue editing...?'),
       form(
-        { action: "/publish/preview", method: "post" },
+        { action: "/publish/preview", method: "post", enctype: "multipart/form-data" },
         label(
           i18n.publishLabel({ markdownUrl, linkTarget: "_blank" }),
           textarea({ required: true, name: "text"}, text)
+        ),
+        label(
+          "add new blob", /* todo: localize */
+          input({ type: "file", name: "blob" })
         ),
         label(
           i18n.contentWarningLabel,
@@ -833,6 +850,7 @@ exports.previewView = ({text, contentWarning}) => {
         button({ type: "submit" }, i18n.preview),
       ),
 
+      // doesn't need blobs, preview adds them to the text
       form(
         { action: "/publish", method: "post" },
         input({
