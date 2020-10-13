@@ -71,10 +71,10 @@ const nbsp = "\xa0";
 /**
  * @param {{href: string, emoji: string, text: string }} input
  */
-const navLink = ({ href, emoji, text }) =>
-  li(a({ href }, span({ class: "emoji" }, emoji), nbsp, text));
-
 const template = (titlePrefix, ...elements) => {
+  const navLink = ({ href, emoji, text }, prefix) =>
+      li(a({ href, class: titlePrefix === text ? "current" : "" }, span({ class: "emoji" }, emoji), nbsp, text));
+
   const nodes = html(
     { lang: "en" },
     head(
@@ -218,7 +218,7 @@ const thread = (messages) => {
   }
 
   const htmlStrings = lodash.flatten(msgList);
-  return div({}, { innerHTML: htmlStrings.join("") });
+  return div({}, { class: "thread-container", innerHTML: htmlStrings.join("") });
 };
 
 const postSnippet = (text) => {
@@ -332,7 +332,10 @@ const post = ({ msg, aside = false }) => {
   );
 
   const { name } = msg.value.meta.author;
-  const timeAgo = msg.value.meta.timestamp.received.since.replace("~", "");
+
+  const ts_received = msg.value.meta.timestamp.received;
+  const timeAgo = ts_received.since.replace("~", "");
+  const timeAbsolute = ts_received.iso8601.split(".")[0].replace("T", " ");
 
   const markdownContent = markdown(
     msg.value.content.text,
@@ -344,7 +347,6 @@ const post = ({ msg, aside = false }) => {
     : { value: 1, class: null };
 
   const likeCount = msg.value.meta.votes.length;
-
   const maxLikedNameLength = 16;
   const maxLikedNames = 16;
 
@@ -412,7 +414,10 @@ const post = ({ msg, aside = false }) => {
         ),
         span({ class: "author-action" }, postOptions[msg.value.meta.postType]),
         span(
-          { class: "time" },
+          {
+            class: "time",
+            title: timeAbsolute,
+          },
           isPrivate ? "🔒" : null,
           a({ href: url.link }, nbsp, timeAgo)
         )
@@ -802,24 +807,11 @@ exports.publishView = () => {
   );
 };
 
-exports.previewView = ({authorMeta, text, contentWarning, blob}) => {
-  // append uploaded blob as markdown to the end of the input text
-  if (typeof blob !== "boolean") {
-    if (blob.mime.startsWith("image/")) {
-      text += `\n![${blob.name}](${blob.id})`
-    } else if (blob.mime.startsWith("audio/")) {
-      text += `\n![audio:${blob.name}](${blob.id})`
-    } else if (blob.mime.startsWith("video/")) {
-      text += `\n![video:${blob.name}](${blob.id})`
-    } else {
-      text += `\n[${blob.name}](${blob.id})`
-    }
-  }
-
+exports.previewView = ({ authorMeta, text, contentWarning }) => {
   const rawHtml = markdown(text);
 
   // craft message that looks like it came from the db
-  // cb: this kinda fragile imo? this is for getting a proper post styling ya?
+  // cb: i wonder if this is fragile? it is for getting a proper post styling ya?
   const msg = {
     key: "%non-existant.preview",
     value: {

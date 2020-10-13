@@ -646,7 +646,7 @@ router
     ctx.redirect(`/thread/${encodeURIComponent(message)}`);
   })
   .post("/publish/preview", koaBody({multipart: true }), async (ctx) => {
-    const text = String(ctx.request.body.text);
+    let text = String(ctx.request.body.text);
     const rawContentWarning = String(ctx.request.body.contentWarning).trim();
 
     const ssb = await cooler.open();
@@ -686,7 +686,6 @@ router
         const FileType = require('file-type');
         try {
           let ftype = await FileType.fromBuffer(data)
-          console.warn(ftype)
           blob.mime = ftype.mime
         } catch (error) {
           console.warn(error)
@@ -694,12 +693,24 @@ router
         }
       }
     }
+    // append uploaded blob as markdown to the end of the input text
+    if (typeof blob !== "boolean") {
+      if (blob.mime.startsWith("image/")) {
+        text += `\n![${blob.name}](${blob.id})`
+      } else if (blob.mime.startsWith("audio/")) {
+        text += `\n![audio:${blob.name}](${blob.id})`
+      } else if (blob.mime.startsWith("video/")) {
+        text += `\n![video:${blob.name}](${blob.id})`
+      } else {
+        text += `\n[${blob.name}](${blob.id})`
+      }
+    }
         
     // Only submit content warning if it's a string with non-zero length.
     const contentWarning =
       rawContentWarning.length > 0 ? rawContentWarning : undefined;
 
-    ctx.body = await previewView({authorMeta, text, contentWarning, blob});
+    ctx.body = await previewView({authorMeta, text, contentWarning});
   })
   .post("/publish/", koaBody(), async (ctx) => {
     const text = String(ctx.request.body.text);
