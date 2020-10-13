@@ -812,9 +812,7 @@ exports.publishView = () => {
   );
 };
 
-exports.previewView = ({authorMeta, text, contentWarning}) => {
-  const rawHtml = markdown(text);
-
+const generatePreview = ({ authorMeta, text, contentWarning }) => {
   // craft message that looks like it came from the db
   // cb: this kinda fragile imo? this is for getting a proper post styling ya?
   const msg = {
@@ -844,7 +842,28 @@ exports.previewView = ({authorMeta, text, contentWarning}) => {
   const ago = Date.now() - Number(ts);
   const prettyAgo = prettyMs(ago, { compact: true });
   lodash.set(msg, "value.meta.timestamp.received.since", prettyAgo);
+  return section({ class: "post-preview" },
+      post({msg}),
 
+      // doesn't need blobs, preview adds them to the text
+      form(
+        { action: "/publish", method: "post" },
+        input({
+          name: "contentWarning",
+          type: "hidden",
+          value: contentWarning,
+        }),
+        input({
+            name: "text",
+            type: "hidden",
+            value: text,
+        }),
+        button({ type: "submit" }, i18n.publish),
+      ),
+    )
+}
+
+exports.previewView = ({ authorMeta, text, contentWarning }) => {
   return template(
     i18n.preview,
     section(
@@ -870,25 +889,7 @@ exports.previewView = ({authorMeta, text, contentWarning}) => {
         input({ type: "file", id: "blob", name: "blob" })
       )
     ),
-    section({ class: "post-preview" },
-      post({msg}),
-
-      // doesn't need blobs, preview adds them to the text
-      form(
-        { action: "/publish", method: "post" },
-        input({
-          name: "contentWarning",
-          type: "hidden",
-          value: contentWarning,
-        }),  
-        input({
-            name: "text",
-            type: "hidden",
-            value: text,
-        }),
-        button({ type: "submit" }, i18n.publish),
-      ),
-    ),
+    generatePreview({ authorMeta, text, contentWarning }),
     p(i18n.publishCustomInfo({ href: "/publish/custom" }))
   );
 };
