@@ -2,6 +2,7 @@
 
 const debug = require("debug")("oasis");
 const highlightJs = require("highlight.js");
+const MarkdownIt = require("markdown-it");
 const prettyMs = require("pretty-ms");
 
 const {
@@ -774,9 +775,12 @@ exports.threadView = ({ messages }) => {
   return template([`@${rootAuthorName}: `, rootSnippet], thread(messages));
 };
 
-// this view is only used for the /settings/readme page
+// this view is only used for the /settings/readme page.
+// To fix style glitches it uses the default MakrdownIt and not ssb-markdown.
+const md = new MarkdownIt();
 exports.markdownView = ({ text }) => {
-  const rawHtml = markdown(text); // todo: remove markdown it?!
+  const rawHtml = md.render(text);
+
   return template(
     postSnippet(text),
     section({ class: "message" }, { innerHTML: rawHtml })
@@ -817,8 +821,7 @@ exports.publishView = () => {
 };
 
 const generatePreview = ({ authorMeta, text, contentWarning, action }) => {
-  // craft message that looks like it came from the db
-  // cb: i wonder if this is fragile? it is for getting a proper post styling ya?
+  // craft message that looks like it came from the db 
   const msg = {
     key: "%non-existant.preview",
     value: {
@@ -868,8 +871,6 @@ const generatePreview = ({ authorMeta, text, contentWarning, action }) => {
 }
 
 exports.previewView = ({ authorMeta, text, contentWarning }) => {
-  const rawHtml = markdown(text);
-
   return template(
     i18n.preview,
     section(
