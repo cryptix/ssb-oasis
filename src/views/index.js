@@ -780,7 +780,6 @@ exports.markdownView = ({ text }) => {
 };
 
 exports.publishView = () => {
-  // TODO: make one with preview
   return template(
     i18n.publish,
     section(
@@ -796,10 +795,6 @@ exports.publishView = () => {
           textarea({ required: true, name: "text" })
         ),
         label(
-          "add new blob", /* todo: localize */
-          input({ type: "file", name: "blob" })
-        ),
-        label(
           i18n.contentWarningLabel,
           input({
             name: "contentWarning",
@@ -808,7 +803,9 @@ exports.publishView = () => {
             placeholder: i18n.contentWarningPlaceholder,
           })
         ),
-        button({ type: "submit" }, i18n.preview)
+        button({ type: "submit" }, i18n.preview),
+        label({ class: "file-button", for: "blob"}, "Attach files"), 
+        input({ type: "file", id: "blob", name: "blob" })
       )
     ),
     p(i18n.publishCustomInfo({ href: "/publish/custom" }))
@@ -819,6 +816,7 @@ exports.previewView = ({authorMeta, text, contentWarning}) => {
   const rawHtml = markdown(text);
 
   // craft message that looks like it came from the db
+  // cb: this kinda fragile imo? this is for getting a proper post styling ya?
   const msg = {
     key: "%non-existant.preview",
     value: {
@@ -831,6 +829,7 @@ exports.previewView = ({authorMeta, text, contentWarning}) => {
       timestamp: Date.now(),
       meta: {
         isPrivate: true,
+        votes: [],
         author: {
           name: authorMeta.name,
           avatar: {
@@ -849,27 +848,12 @@ exports.previewView = ({authorMeta, text, contentWarning}) => {
   return template(
     i18n.preview,
     section(
-      h1(i18n.preview),
-      
-      h2('todo:'),
-      ul(
-        li("[x] show full message not just content"),
-        li("[ ] butt the href's to thread, comment, JSON should not work, maybe?"),
-      ),
-      h2('just the content'),
-      section({ class: "message" }, { innerHTML: rawHtml }),
-      h2('like a post'),
-      post({msg}),
-      h2('continue editing...?'),
+      h1(i18n.publish),
       form(
         { action: "/publish/preview", method: "post", enctype: "multipart/form-data" },
         label(
           i18n.publishLabel({ markdownUrl, linkTarget: "_blank" }),
           textarea({ required: true, name: "text"}, text)
-        ),
-        label(
-          "add new blob", /* todo: localize */
-          input({ type: "file", name: "blob" })
         ),
         label(
           i18n.contentWarningLabel,
@@ -882,7 +866,12 @@ exports.previewView = ({authorMeta, text, contentWarning}) => {
           })
         ),
         button({ type: "submit" }, i18n.preview),
-      ),
+        label({ class: "file-button", for: "blob"}, "Attach files"), 
+        input({ type: "file", id: "blob", name: "blob" })
+      )
+    ),
+    section({ class: "post-preview" },
+      post({msg}),
 
       // doesn't need blobs, preview adds them to the text
       form(
