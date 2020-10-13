@@ -652,7 +652,14 @@ exports.authorView = ({
   return template(i18n.profile, prefix, items);
 };
 
-exports.commentView = async ({ messages, myFeedId, parentMessage }) => {
+exports.previewCommentView = async ({ authorMeta, text, messages, myFeedId, parentMessage }) => {
+  const publishAction = `/comment/${encodeURIComponent(messages[0].key)}`;
+
+  const preview = generatePreview({ authorMeta, text, contentWarning: undefined, action: publishAction })
+  return exports.commentView({ messages, myFeedId, parentMessage }, preview, text)
+};
+
+exports.commentView = async ({ messages, myFeedId, parentMessage }, preview, text) => {
   let markdownMention;
 
   const messageElements = await Promise.all(
@@ -670,7 +677,7 @@ exports.commentView = async ({ messages, myFeedId, parentMessage }) => {
     })
   );
 
-  const action = `/comment/${encodeURIComponent(messages[0].key)}`;
+  const action = `/comment/preview/${encodeURIComponent(messages[0].key)}`;
   const method = "post";
 
   const isPrivate = parentMessage.value.meta.private;
@@ -682,6 +689,7 @@ exports.commentView = async ({ messages, myFeedId, parentMessage }) => {
   return template(
     i18n.commentTitle({ authorName }),
     messageElements,
+    preview !== undefined ? preview : '',
     p(
       ...i18n.commentLabel({ publicOrPrivate, markdownUrl }),
       ...maybeSubtopicText
@@ -694,13 +702,14 @@ exports.commentView = async ({ messages, myFeedId, parentMessage }) => {
           required: true,
           name: "text",
         },
+        text ? text : 
         isPrivate ? null : markdownMention
       ),
       button(
         {
           type: "submit",
         },
-        i18n.comment
+        "Preview comment"
       )
     )
   );
@@ -807,7 +816,7 @@ exports.publishView = () => {
   );
 };
 
-const generatePreview = ({ authorMeta, text, contentWarning }) => {
+const generatePreview = ({ authorMeta, text, contentWarning, action }) => {
   // craft message that looks like it came from the db
   // cb: i wonder if this is fragile? it is for getting a proper post styling ya?
   const msg = {
@@ -842,7 +851,7 @@ const generatePreview = ({ authorMeta, text, contentWarning }) => {
 
       // doesn't need blobs, preview adds them to the text
       form(
-        { action: "/publish", method: "post" },
+        { action, method: "post" },
         input({
           name: "contentWarning",
           type: "hidden",
@@ -886,7 +895,7 @@ exports.previewView = ({ authorMeta, text, contentWarning }) => {
         input({ type: "file", id: "blob", name: "blob" })
       )
     ),
-    generatePreview({ authorMeta, text, contentWarning }),
+    generatePreview({ action: "/publish", authorMeta, text, contentWarning }),
     p(i18n.publishCustomInfo({ href: "/publish/custom" }))
   );
 };
