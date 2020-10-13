@@ -71,10 +71,10 @@ const nbsp = "\xa0";
 /**
  * @param {{href: string, emoji: string, text: string }} input
  */
-const navLink = ({ href, emoji, text }) =>
-  li(a({ href }, span({ class: "emoji" }, emoji), nbsp, text));
-
 const template = (titlePrefix, ...elements) => {
+  const navLink = ({ href, emoji, text }, prefix) =>
+      li(a({ href, class: titlePrefix === text ? "current" : "" }, span({ class: "emoji" }, emoji), nbsp, text));
+
   const nodes = html(
     { lang: "en" },
     head(
@@ -218,7 +218,7 @@ const thread = (messages) => {
   }
 
   const htmlStrings = lodash.flatten(msgList);
-  return div({}, { innerHTML: htmlStrings.join("") });
+  return div({}, { class: "thread-container", innerHTML: htmlStrings.join("") });
 };
 
 const postSnippet = (text) => {
