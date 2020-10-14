@@ -144,6 +144,20 @@ const { about, blob, friend, meta, post, vote } = require("./models")({
   isPublic: config.public,
 });
 
+const preparePreview = async function(ctx) {
+  let text = String(ctx.request.body.text);
+  text += await handleBlobUpload(ctx);
+
+  const ssb = await cooler.open();
+  const authorMeta = {
+    id: ssb.id,
+    name: await about.name(ssb.id),
+    image: await about.image(ssb.id),
+  }
+
+  return { authorMeta, text }
+}
+
 const handleBlobUpload = async function (ctx) {
   let blob = false;
   let text = "";
@@ -717,16 +731,7 @@ router
 
     const messages = [rootMessage];
 
-    let text = String(ctx.request.body.text);
-
-    text += await handleBlobUpload(ctx);
-
-    const ssb = await cooler.open();
-    const authorMeta = {
-      id: ssb.id,
-      name: await about.name(ssb.id),
-      image: await about.image(ssb.id),
-    }
+    const {text, authorMeta } = await preparePreview(ctx);
 
     ctx.body = await previewSubtopicView({ messages, myFeedId, authorMeta, text, contentWarning });
   })
@@ -753,16 +758,8 @@ router
   })
   .post("/comment/preview/:message", koaBody({ multipart: true }), async (ctx) => {
     const { messages, contentWarning, myFeedId, parentMessage } = await resolveCommentComponents(ctx)
-    let text = String(ctx.request.body.text);
-
-    const ssb = await cooler.open();
-    const authorMeta = {
-      id: ssb.id,
-      name: await about.name(ssb.id),
-      image: await about.image(ssb.id),
-    }
-
-    text += await handleBlobUpload(ctx);
+    
+    const {text, authorMeta } = await preparePreview(ctx);
 
     ctx.body = await previewCommentView({ messages, myFeedId, contentWarning, parentMessage, authorMeta, text });
   })
@@ -788,22 +785,13 @@ router
     ctx.redirect(`/thread/${encodeURIComponent(message)}`);
   })
   .post("/publish/preview", koaBody({ multipart: true }), async (ctx) => {
-    let text = String(ctx.request.body.text);
     const rawContentWarning = String(ctx.request.body.contentWarning).trim();
-
-    const ssb = await cooler.open();
-    let authorMeta = {
-      id: ssb.id,
-      name: await about.name(ssb.id),
-      image: await about.image(ssb.id),
-    }
-
-    text += await handleBlobUpload(ctx);
 
     // Only submit content warning if it's a string with non-zero length.
     const contentWarning =
       rawContentWarning.length > 0 ? rawContentWarning : undefined;
 
+    const {text, authorMeta } = await preparePreview(ctx);
     ctx.body = await previewView({authorMeta, text, contentWarning});
   })
   .post("/publish/", koaBody(), async (ctx) => {
