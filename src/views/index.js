@@ -655,10 +655,10 @@ exports.authorView = ({
   return template(i18n.profile, prefix, items);
 };
 
-exports.previewCommentView = async ({ authorMeta, text, messages, myFeedId, parentMessage, contentWarning }) => {
+exports.previewCommentView = async ({ previewData, messages, myFeedId, parentMessage, contentWarning }) => {
   const publishAction = `/comment/${encodeURIComponent(messages[0].key)}`;
 
-  const preview = generatePreview({ authorMeta, text, contentWarning, action: publishAction })
+  const preview = generatePreview({ previewData, contentWarning, action: publishAction })
   return exports.commentView({ messages, myFeedId, parentMessage }, preview, text, contentWarning)
 };
 
@@ -833,7 +833,8 @@ exports.publishView = (preview, text, contentWarning) => {
   );
 };
 
-const generatePreview = ({ authorMeta, text, contentWarning, action }) => {
+const generatePreview = ({ previewData, contentWarning, action }) => {
+  const { authorMeta, text, mentions } = previewData
   // craft message that looks like it came from the db 
   const msg = {
     key: "%non-existant.preview",
@@ -863,7 +864,25 @@ const generatePreview = ({ authorMeta, text, contentWarning, action }) => {
   const ago = Date.now() - Number(ts);
   const prettyAgo = prettyMs(ago, { compact: true });
   lodash.set(msg, "value.meta.timestamp.received.since", prettyAgo);
-  return section({ class: "post-preview" },
+  return div(
+    section({ class: "mention-suggestions"},
+      h2("mentions we found"),
+      ul(
+        mentions.map((m) => { return li(
+          span(
+            { class: "author" },
+            a(
+              { href: `/author/${encodeURIComponent(m.feed)}` },
+              img({ src: `/image/128/${encodeURIComponent(m.img)}`}),
+              m.name
+            )
+          ),
+          pre(JSON.stringify(m.rel))
+          )
+        })
+      ),
+    ),
+    section({ class: "post-preview" },
       post({msg}),
 
       // doesn't need blobs, preview adds them to the text
@@ -882,13 +901,14 @@ const generatePreview = ({ authorMeta, text, contentWarning, action }) => {
         button({ type: "submit" }, i18n.publish),
       ),
     )
+    )
 }
 
-exports.previewView = ({ authorMeta, text, contentWarning }) => {
+exports.previewView = ({ previewData, contentWarning }) => {
   const publishAction = "/publish";
 
-  const preview = generatePreview({ authorMeta, text, contentWarning, action: publishAction })
-  return exports.publishView(preview, text, contentWarning)
+  const preview = generatePreview({ previewData, contentWarning, action: publishAction })
+  return exports.publishView(preview, previewData.text, contentWarning)
 }
 
 /**
@@ -1123,10 +1143,10 @@ exports.threadsView = ({ messages }) => {
   });
 };
 
-exports.previewSubtopicView = async ({ authorMeta, text, messages, myFeedId, contentWarning }) => {
+exports.previewSubtopicView = async ({ previewData, messages, myFeedId, contentWarning }) => {
   const publishAction = `/subtopic/${encodeURIComponent(messages[0].key)}`;
 
-  const preview = generatePreview({ authorMeta, text, contentWarning, action: publishAction })
+  const preview = generatePreview({ previewData, contentWarning, action: publishAction })
   return exports.subtopicView({ messages, myFeedId }, preview, text, contentWarning)
 };
 

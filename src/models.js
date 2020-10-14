@@ -174,7 +174,7 @@ module.exports = ({ cooler, isPublic }) => {
       ); // First 8 chars of public key
     },
     named: (name) => {
-      return all_the_names[name]
+      return all_the_names[name] || []
     },
     image: async (feedId) => {
       if (isPublic && (await models.about.publicWebHosting(feedId)) === false) {
@@ -327,10 +327,16 @@ module.exports = ({ cooler, isPublic }) => {
         dest: feedId,
       });
 
+      const followsMe = await ssb.friends.isFollowing({
+        source: feedId,
+        dest: id,
+      });
+
       return {
         me: false,
         following: isFollowing,
         blocking: isBlocking,
+        followsMe: followsMe,
       };
     },
   };
