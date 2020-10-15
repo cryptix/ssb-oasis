@@ -169,7 +169,6 @@ const preparePreview = async function(ctx) {
     return match
   }
   text = text.replace(unlinkedRe, replacer);
-  console.log(JSON.stringify(mentions, null, 2))
 
   // add blob new blob to the end of the document.
   text += await handleBlobUpload(ctx);

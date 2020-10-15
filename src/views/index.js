@@ -869,11 +869,11 @@ const generatePreview = ({ previewData, contentWarning, action }) => {
   lodash.set(msg, "value.meta.timestamp.received.since", prettyAgo);
   return div(
     section({ class: "mention-suggestions"},
-      h2("mentions we found"),
+      h2("@mentions we found"),
       Object.keys(mentions).map((name) => {
         let matches = mentions[name]
         return div(
-          p(`for '${name}' we found:`),
+          p(`For '${name}' we found:`),
           ul(
             matches.map(m => {
               return li(
@@ -885,7 +885,9 @@ const generatePreview = ({ previewData, contentWarning, action }) => {
                   )
                 ),
                 // TODO: show m.rel following info
-                pre(`[@${m.name}](${m.feed})`)
+                pre(`[@${m.name}](${m.feed})`),
+                // label({}, m.name), // TODO: for=#inputID juggeling
+                // input({type: 'radio', name: "mention_"+name, value:m.feed})
               )
             })
           )
