@@ -152,7 +152,6 @@ const preparePreview = async function(ctx) {
   // find all the @mentions that are not inside a link already
   // stores name:[matches...]
   // TODO: sort by relationship
-  // TODO: filter duplicates 
   const mentions = {}
 
   const replacer = (match, name, offset, string) => {
