@@ -870,20 +870,27 @@ const generatePreview = ({ previewData, contentWarning, action }) => {
   return div(
     section({ class: "mention-suggestions"},
       h2("mentions we found"),
-      ul(
-        mentions.map((m) => { return li(
-          span(
-            { class: "author" },
-            a(
-              { href: `/author/${encodeURIComponent(m.feed)}` },
-              img({ src: `/image/128/${encodeURIComponent(m.img)}`}),
-              m.name
-            )
-          ),
-          pre(JSON.stringify(m.rel))
+      Object.keys(mentions).map((name) => {
+        let matches = mentions[name]
+        return div(
+          p(`for '${name}' we found:`),
+          ul(
+            matches.map(m => {
+              return li(
+                span({ class: "author" },
+                  a(
+                    { href: `/author/${encodeURIComponent(m.feed)}` },
+                    img({ src: `/image/64/${encodeURIComponent(m.img)}`}),
+                    m.name
+                  )
+                ),
+                // TODO: show m.rel following info
+                pre(`[@${m.name}](${m.feed})`)
+              )
+            })
           )
-        })
-      ),
+        )
+      })
     ),
     section({ class: "post-preview" },
       post({msg}),

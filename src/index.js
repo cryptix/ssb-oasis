@@ -150,32 +150,26 @@ const preparePreview = async function(ctx) {
   let text = String(ctx.request.body.text);
 
   // find all the @mentions that are not inside a link already
-  const mentions = []
+  // stores name:[matches...]
+  // TODO: sort by relationship
+  // TODO: filter duplicates 
+  const mentions = {}
 
-  const replacer = (match, p1, offset, string) => {
-    let matches = about.named(p1)
+  const replacer = (match, name, offset, string) => {
+    let matches = about.named(name)
     if (matches.length === 1) {
       // format markdown link and put the correct sign back at the end
-      return `[@${p1}](${matches[0]})`+match.substr(-1)
+      return `[@${name}](${matches[0].feed})`+match.substr(-1)
     }
     for (const feed of matches) {
-      // something is bad here with the matches...
-      // maybe the promises are bad and corrupt mentions[]?
-      about.image(feed).then((img) => {
-        friend.getRelationship(feed).then((rel) => {
-          // TODO: sort by relationship
-          mentions.push({
-            name: p1,
-            feed: feed,
-            img: img,
-            rel: rel
-          })
-        }).catch(console.warn)
-      }).catch(console.warn)
+      let found = mentions[name] || []
+      found.push(feed) 
+      mentions[name] = found
     }
     return match
   }
   text = text.replace(unlinkedRe, replacer);
+  console.log(JSON.stringify(mentions, null, 2))
 
   // add blob new blob to the end of the document.
   text += await handleBlobUpload(ctx);

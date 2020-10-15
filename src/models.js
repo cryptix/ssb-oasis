@@ -146,9 +146,23 @@ module.exports = ({ cooler, isPublic }) => {
       }),
       pull.drain((msg) => {
         const name = msg.value.content.name
-        let feeds_named = all_the_names[name] || []
-        feeds_named.push(msg.value.author)
-        all_the_names[name] = feeds_named
+        const feed = msg.value.author
+
+        getAbout({feedId: feed, key: "image"}).then((img) => {
+          if (img !== null && typeof img !== "string" && typeof img === "object" && typeof img.link === "string") {
+            img = img.link
+          }
+          models.friend.getRelationship(feed).then((rel) => {
+            let feeds_named = all_the_names[name] || []
+            feeds_named.push({
+              feed: feed,
+              name: name,
+              img: img,
+              rel: rel,
+            })
+            all_the_names[name] = feeds_named
+          }).catch(console.warn)
+        }).catch(console.warn)
       })
     )
   });
@@ -235,10 +249,13 @@ module.exports = ({ cooler, isPublic }) => {
     },
     want: async ({ blobId }) => {
       debug("want blob: %s", blobId);
-      const ssb = await cooler.open();
+      cooler.open().then(ssb => {
 
-      // This does not wait for the blob.
-      ssb.blobs.want(blobId);
+        // This does not wait for the blob.
+        ssb.blobs.want(blobId);
+      }).catch(err => {
+        console.warn(`failed to want blob:${blobId}: ${err}`)
+      })
     },
     search: async ({ query }) => {
       debug("blob search: %s", query);
