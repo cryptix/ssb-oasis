@@ -334,6 +334,7 @@ const resolveCommentComponents = async function (ctx) {
 
 const {
   authorView,
+  contactsView,
   previewCommentView,
   commentView,
   editProfileView,
@@ -453,6 +454,21 @@ router
   .get("/public/latest/threads", async (ctx) => {
     const messages = await post.latestThreads();
     ctx.body = await threadsView({ messages });
+  })
+  .get("/contactz/:dist", async (ctx) => {
+    const d = Number(ctx.params["dist"] || 2);
+    const people = await friend.peopleInDistance(d);
+
+    // try to sort by name
+    people.sort((a,b) => {
+      const an = a.name.toLowerCase();
+      const bn = b.name.toLowerCase();
+      if(an < bn) { return -1; }
+      if(an > bn) { return 1; }
+      return 0;
+    })
+
+    ctx.body = await contactsView({people})
   })
   .get("/author/:feed", async (ctx) => {
     const { feed } = ctx.params;

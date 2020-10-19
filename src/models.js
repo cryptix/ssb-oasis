@@ -359,6 +359,71 @@ module.exports = ({ cooler, isPublic }) => {
   };
 
   models.friend = {
+    // contactzzzz hacking
+    peopleInDistance: async (wantedDist) => {
+      const ssb = await cooler.open();
+      return new Promise((resolve, reject) => {
+        pull(
+          ssb.friends.hopStream(),
+          pull.map((jumps) => {
+            return Object.keys(jumps).filter((id) => {
+              const dist = jumps[id]
+              return dist >= 0 && dist <= wantedDist
+            })
+          }),
+          pull.collect((err, all_the_ids) => {
+            if (err) return reject(err)
+            
+            // all_the_ids is a 2stage array
+            if (all_the_ids.length > 1) throw new Error('TODO: concatenate multiple stream results')
+
+            const all_the_images = {}
+            const all_the_names = {}
+
+            const all_the_promises = []
+            for (const feedId of all_the_ids[0]) {
+              const image_promise = getAbout({
+                key: "image",
+                feedId
+              }).then((img) => {
+                if (typeof img === "string")  {
+                  all_the_images[feedId] = img;
+                } else if (
+                  img !== null &&
+                  typeof img !== "string" &&
+                  typeof img === "object" &&
+                  typeof img.link === "string"
+                ) {
+                  all_the_images[feedId] = img.link;
+                } else if (img === null) {
+                  all_the_images[feedId] = nullImage; // default empty image if we dont have one
+                }
+              })
+              all_the_promises.push(image_promise)
+              
+              const name_promise = getAbout({
+                key: "name",
+                feedId
+              }).then((name) => {
+                all_the_names[feedId] = name || feedId.slice(1, 8)
+              })
+              all_the_promises.push(name_promise)
+            }
+            Promise.all(all_the_promises).then(() => {
+              const collected = []
+              for (const feedId of all_the_ids[0]) {
+                const image = all_the_images[feedId]
+                const name = all_the_names[feedId]
+                collected.push({
+                  feedId, image, name
+                })
+              }
+              resolve(collected)
+            })
+          })
+        )
+      })
+    },
     /** @param {{ feedId: string, following: boolean, blocking: boolean }} input */
     setRelationship: async ({ feedId, following, blocking }) => {
       if (following && blocking) {

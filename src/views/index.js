@@ -1303,6 +1303,38 @@ exports.subtopicView = async (
   );
 };
 
+exports.contactsView = ({people}) => {
+  return template(
+    "contacts",
+    section(
+      h1("contacts"),
+      people.map((person) => {
+        return div(
+          { class: "mentions-container" },
+          a(
+            {
+              class: "mentions-image",
+              href: `/author/${encodeURIComponent(person.feedId)}`,
+            },
+            img({ src: `/image/64/${encodeURIComponent(person.image)}` })
+          ),
+          a(
+            {
+              class: "mentions-name",
+              href: `/author/${encodeURIComponent(person.feedId)}`,
+            },
+            person.name
+          ),
+          span(
+            { class: "mentions-listing" },
+            `[@${person.name}](${person.feedId})`
+          )
+        );
+      })
+    )
+  )
+}
+
 exports.searchView = ({ messages, query }) => {
   const searchInput = input({
     name: "query",
