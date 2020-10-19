@@ -455,8 +455,8 @@ router
     const messages = await post.latestThreads();
     ctx.body = await threadsView({ messages });
   })
-  .get("/contactz/:dist", async (ctx) => {
-    const d = Number(ctx.params["dist"] || 2);
+  .get("/contacts/:dist", async (ctx) => {
+    const d = Number(ctx.params["dist"] || 1);
     const people = await friend.peopleInDistance(d);
 
     // try to sort by name
@@ -468,7 +468,22 @@ router
       return 0;
     })
 
-    ctx.body = await contactsView({people})
+    const networks = ["Your network", "Extended network"]
+    const option = (item) => {
+      const index = networks.indexOf(item) + 1
+      const label = networks[index - 1]
+      return li(
+        d === (index)
+          ? a({ class: "current", href: `./${index}` }, label)
+          : a({ href: `./${index}` }, label)
+      );
+    };
+
+    const prefix = nav(
+      ul(option(networks[0]), option(networks[1]))
+    );
+
+    ctx.body = await contactsView({ people, prefix })
   })
   .get("/author/:feed", async (ctx) => {
     const { feed } = ctx.params;

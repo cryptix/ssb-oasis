@@ -145,6 +145,7 @@ const template = (titlePrefix, ...elements) => {
             emoji: "🖼️",
             text: i18n.imageSearch,
           }),
+          navLink({ href: "/contacts/1", emoji: "📓", text: i18n.contacts }),
           navLink({ href: "/settings", emoji: "⚙", text: i18n.settings })
         )
       ),
@@ -1303,11 +1304,12 @@ exports.subtopicView = async (
   );
 };
 
-exports.contactsView = ({people}) => {
+exports.contactsView = ({ people, prefix }) => {
   return template(
-    "contacts",
+    i18n.contacts,
     section(
-      h1("contacts"),
+      h1(i18n.contacts),
+      prefix,
       people.map((person) => {
         return div(
           { class: "mentions-container" },

@@ -53,6 +53,7 @@ const i18n = {
     search: "Search",
     imageSearch: "Image Search",
     settings: "Settings",
+    contacts: "Contacts",
     // post actions
     comment: "Comment",
     subtopic: "Subtopic",
@@ -203,6 +204,7 @@ const i18n = {
     profile: "Mi Perfil",
     search: "Buscar",
     settings: "Configuración",
+    contacts: "Contacts",
     // navbar items
     extended: "Red extendida",
     extendedDescription: [
@@ -419,6 +421,7 @@ const i18n = {
     ],
     search: "Suche",
     settings: "Einstellungen",
+    contacts: "Contacts",
     // post actions
     comment: "Kommentieren",
     reply: "Antworten",
@@ -598,6 +601,7 @@ const i18n = {
     ],
     search: "Cerca",
     settings: "Impostazioni",
+    contacts: "Contacts",
     // post actions
     comment: "Commenta",
     reply: "Rispondi",
@@ -781,6 +785,7 @@ const i18n = {
     ],
     search: "Rechercher",
     settings: "Paramètres",
+    contacts: "Contacts",
     // post actions
     comment: "Commentaire",
     reply: "Réponse",
