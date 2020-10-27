@@ -112,16 +112,12 @@ const template = (titlePrefix, ...elements) => {
             text: i18n.publish,
           }),
           navLink({
-            href: "/public/latest/extended",
-            emoji: "🗺️",
-            text: i18n.extended,
-          }),
-          navLink({
             href: "/public/popular/day",
             emoji: "📣",
             text: i18n.popular,
           }),
           navLink({ href: "/public/latest", emoji: "🐇", text: i18n.latest }),
+          /*
           navLink({
             href: "/public/latest/topics",
             emoji: "📖",
@@ -132,20 +128,23 @@ const template = (titlePrefix, ...elements) => {
             emoji: "🗒️",
             text: i18n.summaries,
           }),
+*/
           navLink({
             href: "/public/latest/threads",
             emoji: "🧵",
             text: i18n.threads,
           }),
           navLink({ href: "/profile", emoji: "🐱", text: i18n.profile }),
-          navLink({ href: "/mentions", emoji: "💬", text: i18n.mentions }),
+          //  navLink({ href: "/mentions", emoji: "💬", text: i18n.mentions }),
           navLink({ href: "/inbox", emoji: "✉️", text: i18n.private }),
+          /*
           navLink({ href: "/search", emoji: "🔍", text: i18n.search }),
           navLink({
             href: "/imageSearch",
             emoji: "🖼️",
             text: i18n.imageSearch,
           }),
+*/
           navLink({ href: "/settings", emoji: "⚙", text: i18n.settings })
         )
       ),

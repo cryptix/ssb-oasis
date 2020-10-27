@@ -74,20 +74,19 @@ module.exports = ({ cooler, isPublic }) => {
    * above problems. Maybe this should be moved somewhere else in the future?
    */
   const getAbout = async ({ key, feedId }) => {
-      const ssb = await cooler.open();
+    const ssb = await cooler.open();
 
-
-      const source = ssb.partialReplication.getMessagesOfType({
-          keys:true,
-          type: 'about',
-          id: feedId
-      })
+    const source = ssb.partialReplication.getMessagesOfType({
+      keys: true,
+      type: "about",
+      id: feedId,
+    });
     return new Promise((resolve, reject) =>
       pull(
         source,
         pull.find(
-            (message) => message.value.content[key] !== undefined,
-            (err, message) => {
+          (message) => message.value.content[key] !== undefined,
+          (err, message) => {
             if (err) {
               reject(err);
             } else {
@@ -190,49 +189,37 @@ module.exports = ({ cooler, isPublic }) => {
   cooler.open().then((ssb) => {
     console.time("about-name-warmup"); // benchmark the time it takes to stream all existing about messages
     pull(
-      ssb.query.read({
-        live: true, // keep streaming new messages as they arrive
-        query: [
-          {
-            $filter: {
-              // all messages of type:about that have a name field that is typeof string
-              value: {
-                content: {
-                  type: "about",
-                  name: { $is: "string" },
-                },
-              },
-            },
-          },
-        ],
+      ssb.messagesByType({ type: "about", keys: true }),
+      pull.filter((msg) => {
+        return typeof msg.value.content.name === "string";
       }),
       pull.filter((msg) => {
-        // backlog of data is done, only new values from now on
-        if (msg.sync && msg.sync === true) {
-          console.timeEnd("about-name-warmup");
-          transposeLookupTable(); // fire once now
-          setInterval(transposeLookupTable, 1000 * 60); // and then every 60 seconds
-          return false;
-        }
         // only pick messages about self
         return msg.value.author == msg.value.content.about;
       }),
-      pull.drain((msg) => {
-        const name = msg.value.content.name;
-        const ts = msg.value.timestamp;
-        const feed = msg.value.author;
+      pull.drain(
+        (msg) => {
+          const name = msg.value.content.name;
+          const ts = msg.value.timestamp;
+          const feed = msg.value.author;
 
-        const newEntry = { name, ts };
-        const currentEntry = feeds_to_name[feed];
-        if (typeof currentEntry == "undefined") {
-          dirty = true;
-          feeds_to_name[feed] = newEntry;
-        } else if (currentEntry.ts < ts) {
-          // overwrite entry if it's newer
-          dirty = true;
-          feeds_to_name[feed] = newEntry;
+          const newEntry = { name, ts };
+          const currentEntry = feeds_to_name[feed];
+          if (typeof currentEntry == "undefined") {
+            dirty = true;
+            feeds_to_name[feed] = newEntry;
+          } else if (currentEntry.ts < ts) {
+            // overwrite entry if it's newer
+            dirty = true;
+            feeds_to_name[feed] = newEntry;
+          }
+        },
+        () => {
+          console.timeEnd("about-name-warmup");
+          transposeLookupTable(); // fire once now
+          setInterval(transposeLookupTable, 1000 * 60); // and then every 60 seconds
         }
-      })
+      )
     );
   });
 
@@ -591,8 +578,8 @@ module.exports = ({ cooler, isPublic }) => {
     query,
     filter = null,
   }) => {
-      console.log(query)
-      throw new Error('backlinks unsupported')
+    console.log(query);
+    throw new Error("backlinks unsupported");
     const options = configure({ query, index: "DTA" }, customOptions);
 
     const source = ssb.badlink.read(options);
@@ -628,7 +615,7 @@ module.exports = ({ cooler, isPublic }) => {
   }) => {
     return new Promise((resolve, reject) => {
       pull(
-        ssb.tangles(rootId),
+        ssb.tangles({ root: rootId, keys: true }),
         pull.filter(
           (msg) =>
             isNotEncrypted(msg) &&
@@ -638,6 +625,7 @@ module.exports = ({ cooler, isPublic }) => {
         pull.take(maxMessages),
         pull.collect((err, collectedMessages) => {
           if (err) {
+            console.warn(err);
             reject(err);
           } else {
             resolve(transform(ssb, collectedMessages, myFeedId));
@@ -645,7 +633,6 @@ module.exports = ({ cooler, isPublic }) => {
         })
       );
     });
-
   };
 
   /**
@@ -697,7 +684,6 @@ module.exports = ({ cooler, isPublic }) => {
           return null;
         }
 
-
         if (lodash.get(msg, "value.content.type") === "blog") {
           const blogTitle = msg.value.content.title;
           const blogSummary = lodash.get(msg, "value.content.summary", null);
@@ -709,9 +695,6 @@ module.exports = ({ cooler, isPublic }) => {
           }
           lodash.set(msg, "value.content.text", textElements.join("\n\n"));
         }
-
-
-
 
         const pendingName = models.about.name(msg.value.author);
         const pendingAvatarMsg = models.about.image(msg.value.author);
@@ -783,14 +766,17 @@ module.exports = ({ cooler, isPublic }) => {
           lodash.set(msg, "value.meta.postType", "mystery");
         }
 
-
-       return msg;
+        return msg;
       })
     );
 
   const getLimitPost = async (feedId, reverse) => {
     const ssb = await cooler.open();
-      const source = ssb.createHistoryStream({ keys:true, id: feedId, reverse: reverse });
+    const source = ssb.createHistoryStream({
+      keys: true,
+      id: feedId,
+      reverse: reverse,
+    });
     const messages = await new Promise((resolve, reject) => {
       pull(
         source,
@@ -820,7 +806,7 @@ module.exports = ({ cooler, isPublic }) => {
 
       const myFeedId = ssb.id;
 
-      let defaultOptions = { keys:true, id: feedId };
+      let defaultOptions = { keys: true, id: feedId };
       if (lt >= 0) defaultOptions.lt = lt;
       if (gt >= 0) defaultOptions.gt = gt;
       defaultOptions.reverse = !(gt >= 0 && lt < 0);
@@ -907,7 +893,7 @@ module.exports = ({ cooler, isPublic }) => {
       const messages = await getTangleMessages({
         myFeedId,
         rootId,
-        ssb, 
+        ssb,
         filter: (msg) => msg.value.content.root === rootId && hasNoFork(msg),
       });
 
@@ -951,9 +937,9 @@ module.exports = ({ cooler, isPublic }) => {
 
       const messages = await new Promise((resolve, reject) => {
         pull(
-            ssb.createLogStream({reverse:true,keys:true}),
-            pull.filter( (msg) => msg.value.content.type == 'post' ),
-            pull.take(maxMessages),
+          ssb.createLogStream({ reverse: true, keys: true }),
+          pull.filter((msg) => msg.value.content.type == "post"),
+          pull.take(maxMessages),
 
           pull.collect((err, collectedMessages) => {
             if (err) {
@@ -1060,23 +1046,12 @@ module.exports = ({ cooler, isPublic }) => {
       const ssb = await cooler.open();
 
       const myFeedId = ssb.id;
-
-      const source = ssb.query.read(
-        configure({
-          query: [
-            {
-              $filter: {
-                value: {
-                  timestamp: { $lte: Date.now() },
-                  content: {
-                    type: { $in: ["post", "blog"] },
-                  },
-                },
-              },
-            },
-          ],
-        })
-      );
+      const source = ssb.messagesByType({
+        keys: true,
+        type: "post",
+        limit: maxMessages,
+        reverse: true,
+      });
 
       const messages = await new Promise((resolve, reject) => {
         pull(
@@ -1112,7 +1087,12 @@ module.exports = ({ cooler, isPublic }) => {
 
       const myFeedId = ssb.id;
 
-        const source = ssb.messagesByType({keys:true,type:"vote", limit:2000})
+      const source = ssb.messagesByType({
+        keys: true,
+        type: "vote",
+        limit: 4000,
+        reverse: true,
+      });
 
       const messages = await new Promise((resolve, reject) => {
         pull(
@@ -1307,10 +1287,9 @@ module.exports = ({ cooler, isPublic }) => {
 
           const getDirectDescendants = (key) =>
             new Promise((resolve, reject) => {
-
-                const referenceStream = ssb.tangles({
-                  keys:true,
-                  root: key,
+              const referenceStream = ssb.tangles({
+                keys: true,
+                root: key,
               });
               pull(
                 referenceStream,
@@ -1337,6 +1316,7 @@ module.exports = ({ cooler, isPublic }) => {
                 }),
                 pull.collect((err, messages) => {
                   if (err) {
+                    console.warn(err);
                     reject(err);
                   } else {
                     resolve(messages || undefined);
@@ -1548,25 +1528,19 @@ module.exports = ({ cooler, isPublic }) => {
 
       const myFeedId = ssb.id;
 
-      const options = configure(
-        {
-          query: [{ $filter: { dest: ssb.id } }],
-        },
-        customOptions
-      );
-
-      const source = ssb.backlinks.read(options);
+      const source = ssb.private.read({ keys: true });
 
       const messages = await new Promise((resolve, reject) => {
         pull(
           source,
-          // Make sure we're only getting private messages that are posts.
+          /* Make sure we're only getting private messages that are posts.
           pull.filter(
             (message) =>
               isDecrypted(message) &&
               (lodash.get(message, "value.content.type") === "post" ||
                 lodash.get(message, "value.content.type") === "blog")
           ),
+*/
           pull.unique((message) => {
             const { root } = message.value.content;
             if (root == null) {

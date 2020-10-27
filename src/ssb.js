@@ -35,7 +35,7 @@ const log = (formatter, ...args) => {
 const connect = (options) =>
   new Promise((resolve, reject) => {
     const onSuccess = (api) => {
-      log('connected')
+      log("connected");
       resolve(api);
     };
 
@@ -85,17 +85,16 @@ const ensureConnection = (customConfig) => {
   if (pendingConnection === null) {
     pendingConnection = new Promise((resolve) => {
       attemptConnection()
-            .then((ssb) => {
+        .then((ssb) => {
           resolve(ssb);
         })
         .catch(() => {
           debug("Connection attempts to existing Scuttlebutt services failed");
           log("Starting Scuttlebutt service");
 
-
           // Give the server a moment to start. This is a race condition. :/
-            setTimeout(() => {
-               log('timeout, reconnecting..');
+          setTimeout(() => {
+            log("timeout, reconnecting..");
             attemptConnection()
               .then(resolve)
               .catch((e) => {
