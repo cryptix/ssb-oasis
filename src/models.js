@@ -573,35 +573,27 @@ module.exports = ({ cooler, isPublic }) => {
   const maxMessages = 64;
 
   const getMessages = async ({
-    myFeedId,
-    customOptions,
-    ssb,
-    query,
+      myFeedId,
+      ssb,
+    source,
     filter = null,
   }) => {
-    console.log(query);
-    throw new Error("backlinks unsupported");
-    const options = configure({ query, index: "DTA" }, customOptions);
-
-    const source = ssb.badlink.read(options);
-    const basicSocialFilter = await socialFilter();
-
     return new Promise((resolve, reject) => {
       pull(
         source,
-        basicSocialFilter,
         pull.filter(
           (msg) =>
             isNotEncrypted(msg) &&
             isPost(msg) &&
             (filter == null || filter(msg) === true)
         ),
-        pull.take(maxMessages),
+         pull.take(maxMessages),
+          pullSort((aVal, bVal) => bVal.value.timestamp - aVal.value.timestamp),
         pull.collect((err, collectedMessages) => {
           if (err) {
             reject(err);
           } else {
-            resolve(transform(ssb, ssbSort(collectedMessages), myFeedId));
+            resolve(transform(ssb, collectedMessages, myFeedId));
           }
         })
       );
@@ -847,22 +839,25 @@ module.exports = ({ cooler, isPublic }) => {
 
       const myFeedId = ssb.id;
 
-      const query = [
-        {
-          $filter: {
-            dest: myFeedId,
-          },
-        },
-      ];
+        const source = ssb.messagesByType({
+            type: "post",
+            reverse: true,
+            keys: true,
+            limit: 35000
+        })
 
-      const messages = await getMessages({
-        myFeedId,
-        customOptions,
-        ssb,
-        query,
-        filter: (msg) =>
+        const messages = await getMessages({
+            myFeedId,
+            ssb,
+            source,
+         filter: (msg) =>
           msg.value.author !== myFeedId &&
-          lodash.get(msg, "value.meta.private") !== true,
+              //  lodash.get(msg, "value.meta.private") !== true &&
+                (Array.isArray(msg.value.content.mentions) &&
+                 msg.value.content.mentions.filter((m) => {
+//                     console.log(m)
+                     return m.link && m.link === myFeedId
+                 }).length > 0),
       });
 
       return messages;

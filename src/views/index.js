@@ -135,7 +135,7 @@ const template = (titlePrefix, ...elements) => {
             text: i18n.threads,
           }),
           navLink({ href: "/profile", emoji: "🐱", text: i18n.profile }),
-          //  navLink({ href: "/mentions", emoji: "💬", text: i18n.mentions }),
+          navLink({ href: "/mentions", emoji: "💬", text: i18n.mentions }),
           navLink({ href: "/inbox", emoji: "✉️", text: i18n.private }),
           /*
           navLink({ href: "/search", emoji: "🔍", text: i18n.search }),
