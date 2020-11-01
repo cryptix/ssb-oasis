@@ -8,6 +8,7 @@ const pullParallelMap = require("pull-paramap");
 const pull = require("pull-stream");
 const pullSort = require("pull-sort");
 const ssbRef = require("ssb-ref");
+const ssbSort = require('ssb-sort');
 
 const isEncrypted = (message) => typeof message.value.content === "string";
 const isNotEncrypted = (message) => isEncrypted(message) === false;
@@ -600,7 +601,7 @@ module.exports = ({ cooler, isPublic }) => {
           if (err) {
             reject(err);
           } else {
-            resolve(transform(ssb, collectedMessages, myFeedId));
+            resolve(transform(ssb, ssbSort(collectedMessages), myFeedId));
           }
         })
       );
@@ -940,7 +941,7 @@ module.exports = ({ cooler, isPublic }) => {
           ssb.createLogStream({ reverse: true, keys: true }),
           pull.filter((msg) => msg.value.content.type == "post"),
           pull.take(maxMessages),
-
+          pullSort((aVal,  bVal) => bVal.value.timestamp - aVal.value.timestamp),
           pull.collect((err, collectedMessages) => {
             if (err) {
               reject(err);
@@ -1068,6 +1069,7 @@ module.exports = ({ cooler, isPublic }) => {
             );
             cb(null, message);
           }),
+          pullSort((aVal,  bVal) => bVal.value.timestamp - aVal.value.timestamp),
           pull.filter((message) => message.value.meta.thread.length > 1),
           pull.collect((err, collectedMessages) => {
             if (err) {
@@ -1090,7 +1092,7 @@ module.exports = ({ cooler, isPublic }) => {
       const source = ssb.messagesByType({
         keys: true,
         type: "vote",
-        limit: 4000,
+        limit: 6000,
         reverse: true,
       });
 
@@ -1178,6 +1180,7 @@ module.exports = ({ cooler, isPublic }) => {
                     (message.value.content.type === "post" ||
                       message.value.content.type === "blog")
                 ),
+                pullSort((aVal,  bVal) => bVal.value.timestamp - aVal.value.timestamp),
                 pull.collect((collectErr, collectedMessages) => {
                   if (collectErr) {
                     reject(collectErr);
