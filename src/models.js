@@ -8,7 +8,7 @@ const pullParallelMap = require("pull-paramap");
 const pull = require("pull-stream");
 const pullSort = require("pull-sort");
 const ssbRef = require("ssb-ref");
-const ssbSort = require('ssb-sort');
+const ssbSort = require("ssb-sort");
 
 const isEncrypted = (message) => typeof message.value.content === "string";
 const isNotEncrypted = (message) => isEncrypted(message) === false;
@@ -624,6 +624,7 @@ module.exports = ({ cooler, isPublic }) => {
             (filter == null || filter(msg) === true)
         ),
         pull.take(maxMessages),
+        pullSort((aVal, bVal) => bVal.value.timestamp - aVal.value.timestamp),
         pull.collect((err, collectedMessages) => {
           if (err) {
             console.warn(err);
@@ -941,7 +942,7 @@ module.exports = ({ cooler, isPublic }) => {
           ssb.createLogStream({ reverse: true, keys: true }),
           pull.filter((msg) => msg.value.content.type == "post"),
           pull.take(maxMessages),
-          pullSort((aVal,  bVal) => bVal.value.timestamp - aVal.value.timestamp),
+          pullSort((aVal, bVal) => bVal.value.timestamp - aVal.value.timestamp),
           pull.collect((err, collectedMessages) => {
             if (err) {
               reject(err);
@@ -1069,7 +1070,7 @@ module.exports = ({ cooler, isPublic }) => {
             );
             cb(null, message);
           }),
-          pullSort((aVal,  bVal) => bVal.value.timestamp - aVal.value.timestamp),
+          pullSort((aVal, bVal) => bVal.value.timestamp - aVal.value.timestamp),
           pull.filter((message) => message.value.meta.thread.length > 1),
           pull.collect((err, collectedMessages) => {
             if (err) {
@@ -1180,7 +1181,9 @@ module.exports = ({ cooler, isPublic }) => {
                     (message.value.content.type === "post" ||
                       message.value.content.type === "blog")
                 ),
-                pullSort((aVal,  bVal) => bVal.value.timestamp - aVal.value.timestamp),
+                pullSort(
+                  (aVal, bVal) => bVal.value.timestamp - aVal.value.timestamp
+                ),
                 pull.collect((collectErr, collectedMessages) => {
                   if (collectErr) {
                     reject(collectErr);
@@ -1510,7 +1513,7 @@ module.exports = ({ cooler, isPublic }) => {
       const parentHasFork = parentFork != null;
 
       message.root = parentHasFork ? parentKey : parentRoot;
-      message.branch = await post.branch({ root: parent.key });
+      message.branch = await post.branch({ root: message.root });
       message.type = "post"; // redundant but used for validation
 
       if (isComment(message) !== true) {
@@ -1520,9 +1523,21 @@ module.exports = ({ cooler, isPublic }) => {
 
       return post.publish(message);
     },
+    // TODO server side lookup
     branch: async ({ root }) => {
       const ssb = await cooler.open();
-      const keys = await ssb.tangles.branch(root); // branch lookup
+      const keys = await new Promise((resolve, reject) => {
+        pull(
+          ssb.tangles({ keys: true, root: root }),
+          pull.collect((err, msgs) => {
+            if (err) {
+              reject(err);
+              return;
+            }
+            resolve(ssbSort.heads(msgs));
+          })
+        );
+      });
 
       return keys;
     },
