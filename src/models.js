@@ -801,8 +801,9 @@ module.exports = ({ cooler, isPublic }) => {
       const myFeedId = ssb.id;
 
       let defaultOptions = { keys: true, id: feedId };
-      if (lt >= 0) defaultOptions.lt = lt;
-      if (gt >= 0) defaultOptions.gt = gt;
+      // go-ssb is in seconds
+      if (lt >= 0) defaultOptions.lt = lt/1000;
+      if (gt >= 0) defaultOptions.gt = gt/1000;
       defaultOptions.reverse = !(gt >= 0 && lt < 0);
       const options = configure(defaultOptions, customOptions);
       const { blocking } = await models.friend.getRelationship(feedId);
@@ -814,6 +815,8 @@ module.exports = ({ cooler, isPublic }) => {
         return [];
       }
 
+      options['what-the-actual']=true // some args are not getting through..? maybe there is some hooking involved?!
+      console.warn("calling hist with:",options)
       const source = ssb.createHistoryStream(options);
 
       const messages = await new Promise((resolve, reject) => {
@@ -830,7 +833,7 @@ module.exports = ({ cooler, isPublic }) => {
           })
         );
       });
-
+      
       if (!defaultOptions.reverse) return messages.reverse();
       else return messages;
     },
@@ -1083,13 +1086,26 @@ module.exports = ({ cooler, isPublic }) => {
     popular: async ({ period }) => {
       const ssb = await cooler.open();
 
+      const periodDict = {
+        day: 1,
+        week: 7,
+        month: 30.42,
+        year: 365,
+      };
+
+      if (period in periodDict === false) {
+        throw new Error("invalid period");
+      }
+ 
+      const now = new Date();
+      const earliest = Number(now) - 1000 * 60 * 60 * 24 * periodDict[period];
+      
       const myFeedId = ssb.id;
 
       const source = ssb.messagesByType({
         keys: true,
         type: "vote",
-        limit: 6000,
-        reverse: true,
+        gt: earliest/1000, // go-ssb currently only does seconds
       });
 
       const messages = await new Promise((resolve, reject) => {
@@ -1175,9 +1191,6 @@ module.exports = ({ cooler, isPublic }) => {
                     isNotPrivate(message) &&
                     (message.value.content.type === "post" ||
                       message.value.content.type === "blog")
-                ),
-                pullSort(
-                  (aVal, bVal) => bVal.value.timestamp - aVal.value.timestamp
                 ),
                 pull.collect((collectErr, collectedMessages) => {
                   if (collectErr) {
