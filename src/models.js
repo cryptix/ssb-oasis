@@ -608,7 +608,7 @@ module.exports = ({ cooler, isPublic }) => {
   }) => {
     return new Promise((resolve, reject) => {
       pull(
-        ssb.tangles({ root: rootId, keys: true }),
+        ssb.tangles.replies({ private: true, root: rootId, keys: true }),
         pull.filter(
           (msg) =>
             isNotEncrypted(msg) &&
@@ -833,7 +833,7 @@ module.exports = ({ cooler, isPublic }) => {
           })
         );
       });
-      
+
       if (!defaultOptions.reverse) return messages.reverse();
       else return messages;
     },
@@ -1096,10 +1096,10 @@ module.exports = ({ cooler, isPublic }) => {
       if (period in periodDict === false) {
         throw new Error("invalid period");
       }
- 
+
       const now = new Date();
       const earliest = Number(now) - 1000 * 60 * 60 * 24 * periodDict[period];
-      
+
       const myFeedId = ssb.id;
 
       const source = ssb.messagesByType({
@@ -1301,8 +1301,9 @@ module.exports = ({ cooler, isPublic }) => {
 
           const getDirectDescendants = (key) =>
             new Promise((resolve, reject) => {
-              const referenceStream = ssb.tangles({
+              const referenceStream = ssb.tangles.replies({
                 keys: true,
+                private:true,
                 root: key,
               });
               pull(
@@ -1536,7 +1537,7 @@ module.exports = ({ cooler, isPublic }) => {
       const ssb = await cooler.open();
       const keys = await new Promise((resolve, reject) => {
         pull(
-          ssb.tangles({ keys: true, root: root }),
+          ssb.tangles.replies({ private: true, keys: true, root: root }),
           pull.collect((err, msgs) => {
             if (err) {
               reject(err);
@@ -1576,6 +1577,7 @@ module.exports = ({ cooler, isPublic }) => {
             }
           }),
           pull.take(maxMessages),
+          pullSort((aVal, bVal) => bVal.value.timestamp - aVal.value.timestamp),
           pull.collect((err, collectedMessages) => {
             if (err) {
               reject(err);
